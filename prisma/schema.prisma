@@ -1,0 +1,252 @@
+// ECMA-LLM Prisma schema (MySQL) — structured data from TheLook eCommerce CSVs in /dataset
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ------------------ TheLook: reference data ------------------
+model DistributionCenter {
+  id        Int     @id
+  name      String
+  latitude  Decimal? @db.Decimal(12, 8)
+  longitude Decimal? @db.Decimal(12, 8)
+
+  products Product[]
+
+  @@map("distribution_centers")
+}
+
+model User {
+  id            Int      @id
+  firstName     String   @map("first_name")
+  lastName      String   @map("last_name")
+  email         String
+  age           Int?
+  gender        String?
+  state         String?
+  streetAddress String?  @map("street_address") @db.Text
+  postalCode    String?  @map("postal_code")
+  city          String?
+  country       String?
+  latitude      Decimal? @db.Decimal(14, 10)
+  longitude     Decimal? @db.Decimal(14, 10)
+  trafficSource String?  @map("traffic_source")
+  createdAt     DateTime @map("created_at")
+
+  orders     Order[]
+  orderItems OrderItem[]
+
+  @@index([email])
+  @@map("users")
+}
+
+model Product {
+  id                   Int      @id
+  cost                 Decimal  @db.Decimal(16, 8)
+  category             String
+  name                 String   @db.Text
+  brand                String
+  retailPrice          Decimal  @map("retail_price") @db.Decimal(16, 8)
+  department           String
+  sku                  String   @unique @db.VarChar(64)
+  distributionCenterId Int?     @map("distribution_center_id")
+
+  // Search / demo helpers (not in source CSV; set at import time)
+  inStock     Boolean  @default(true) @map("in_stock")
+  stockLabel  String?  @map("stock_label")
+  rating      Float?
+  specs       Json?
+  description String?  @db.Text
+  currency    String   @default("USD")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  distributionCenter DistributionCenter? @relation(fields: [distributionCenterId], references: [id], onDelete: SetNull)
+  orderItems         OrderItem[]
+  inventoryItems     InventoryItem[]
+
+  @@index([category])
+  @@index([department])
+  @@index([retailPrice])
+  @@index([inStock])
+  @@map("products")
+}
+
+model Order {
+  orderId     Int       @id @map("order_id")
+  userId      Int       @map("user_id")
+  status      String
+  gender      String?
+  createdAt   DateTime  @map("created_at")
+  returnedAt  DateTime? @map("returned_at")
+  shippedAt   DateTime? @map("shipped_at")
+  deliveredAt DateTime? @map("delivered_at")
+  numOfItem   Int       @map("num_of_item")
+
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items          OrderItem[]
+  billingRecords BillingRecord[]
+
+  @@index([userId])
+  @@index([status])
+  @@map("orders")
+}
+
+model OrderItem {
+  id              Int       @id
+  orderId         Int       @map("order_id")
+  userId          Int       @map("user_id")
+  productId       Int       @map("product_id")
+  inventoryItemId Int?      @map("inventory_item_id")
+  status          String
+  createdAt       DateTime  @map("created_at")
+  shippedAt       DateTime? @map("shipped_at")
+  deliveredAt     DateTime? @map("delivered_at")
+  returnedAt      DateTime? @map("returned_at")
+  salePrice       Decimal   @map("sale_price") @db.Decimal(16, 8)
+
+  order   Order   @relation(fields: [orderId], references: [orderId], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([userId])
+  @@index([productId])
+  @@map("order_items")
+}
+
+model InventoryItem {
+  id                          Int       @id
+  productId                   Int       @map("product_id")
+  createdAt                   DateTime  @map("created_at")
+  soldAt                      DateTime? @map("sold_at")
+  cost                        Decimal   @db.Decimal(16, 8)
+  productCategory             String    @map("product_category")
+  productName                 String    @map("product_name") @db.Text
+  productBrand                String    @map("product_brand")
+  productRetailPrice          Decimal   @map("product_retail_price") @db.Decimal(16, 8)
+  productDepartment           String    @map("product_department")
+  productSku                  String    @map("product_sku") @db.VarChar(64)
+  productDistributionCenterId Int       @map("product_distribution_center_id")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@map("inventory_items")
+}
+
+// Optional: large table — import with --events (streaming)
+model ShopEvent {
+  id             Int      @id
+  userId         Int      @map("user_id")
+  sequenceNumber Int      @map("sequence_number")
+  sessionId      String   @map("session_id") @db.VarChar(64)
+  createdAt      DateTime @map("created_at")
+  ipAddress      String?  @map("ip_address")
+  city           String?
+  state          String?
+  postalCode     String?  @map("postal_code")
+  browser        String?
+  trafficSource  String?  @map("traffic_source")
+  uri            String?  @db.VarChar(512)
+  eventType      String   @map("event_type")
+
+  @@index([userId])
+  @@index([eventType])
+  @@map("shop_events")
+}
+
+// ------------------ Derived / demo billing (synthesized at import from orders + items) ------------------
+model BillingRecord {
+  id                String   @id @default(uuid())
+  userId            String   @map("user_id")
+  orderId           Int?     @map("order_id")
+  lastChargeAmount  Decimal  @map("last_charge_amount") @db.Decimal(12, 2)
+  chargeDate        DateTime @map("charge_date")
+  duplicateDetected Boolean  @default(false) @map("duplicate_detected")
+  refundRef         String?  @map("refund_ref")
+  refundEta         String?  @map("refund_eta")
+  refundStatus      String?  @map("refund_status")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  order Order? @relation(fields: [orderId], references: [orderId], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([orderId])
+  @@map("billing_records")
+}
+
+// ------------------ Personas ------------------
+model PersonaSpec {
+  id          String   @id @default(uuid())
+  personaId   String   @unique @map("persona_id")
+  brand       String
+  role        String
+  tone        String   @db.Text
+  rules       Json     @default("{}")
+  closingLine String   @map("closing_line")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("persona_specs")
+}
+
+// ------------------ Conversations ------------------
+model Conversation {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  personaId String   @map("persona_id")
+  status    String   @default("active")
+  startedAt DateTime @default(now()) @map("started_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  turns Turn[]
+
+  @@index([userId])
+  @@index([status])
+  @@map("conversations")
+}
+
+model Turn {
+  id              String   @id @default(uuid())
+  conversationId  String   @map("conversation_id")
+  turnNumber      Int      @map("turn_number")
+  userInput       String   @db.Text @map("user_input")
+  systemResponse  String?  @db.Text @map("system_response")
+  intent          String
+  entities        Json     @default("{}")
+  evaluation      Json?
+  refinementCount Int      @default(0) @map("refinement_count")
+  latencyMs       Int?     @map("latency_ms")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  agentLogs    AgentLog[]
+
+  @@index([conversationId])
+  @@index([intent])
+  @@map("turns")
+}
+
+model AgentLog {
+  id              String   @id @default(uuid())
+  turnId          String?  @map("turn_id")
+  agentName       String   @map("agent_name")
+  input           Json     @default("{}")
+  output          Json     @default("{}")
+  executionTimeMs Int      @map("execution_time_ms")
+  success         Boolean  @default(true)
+  errorMessage    String?  @db.Text @map("error_message")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  turn Turn? @relation(fields: [turnId], references: [id], onDelete: Cascade)
+
+  @@index([agentName])
+  @@index([turnId])
+  @@map("agent_logs")
+}

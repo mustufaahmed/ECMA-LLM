@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ECMA-LLM — Multi-Agent E-commerce Chatbot</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#f5f5f0;min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:24px 16px}
+:root{
+  --color-background-primary:#ffffff;
+  --color-background-secondary:#f5f5f0;
+  --color-background-tertiary:#ebebdf;
+  --color-background-info:#e6f1fb;
+  --color-background-success:#eaf3de;
+  --color-background-warning:#faeeda;
+  --color-background-danger:#fcebeb;
+  --color-text-primary:#1a1a18;
+  --color-text-secondary:#5f5e5a;
+  --color-text-info:#185fa5;
+  --color-text-success:#3b6d11;
+  --color-text-warning:#854f0b;
+  --color-text-danger:#a32d2d;
+  --color-border-tertiary:rgba(0,0,0,0.12);
+  --color-border-secondary:rgba(0,0,0,0.22);
+  --color-border-info:#85b7eb;
+  --color-border-success:#97c459;
+  --color-border-warning:#ef9f27;
+  --color-border-danger:#f09595;
+  --border-radius-md:8px;
+  --border-radius-lg:12px;
+  --font-mono:'Courier New',monospace;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --color-background-primary:#1e1e1c;
+    --color-background-secondary:#282825;
+    --color-background-tertiary:#323230;
+    --color-background-info:#0c447c;
+    --color-background-success:#27500a;
+    --color-background-warning:#633806;
+    --color-background-danger:#791f1f;
+    --color-text-primary:#e8e6de;
+    --color-text-secondary:#9c9a92;
+    --color-text-info:#85b7eb;
+    --color-text-success:#97c459;
+    --color-text-warning:#ef9f27;
+    --color-text-danger:#f09595;
+    --color-border-tertiary:rgba(255,255,255,0.12);
+    --color-border-secondary:rgba(255,255,255,0.22);
+  }
+}
+.wrap{display:flex;gap:0;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);overflow:hidden;background:var(--color-background-primary);width:100%;max-width:900px;min-height:680px}
+.sidebar{width:220px;min-width:220px;border-right:0.5px solid var(--color-border-tertiary);background:var(--color-background-secondary);display:flex;flex-direction:column;padding:12px}
+.sidebar-title{font-size:11px;font-weight:500;color:var(--color-text-secondary);margin-bottom:10px;letter-spacing:.05em}
+.agent-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:var(--border-radius-md);margin-bottom:4px;transition:all .25s;border:0.5px solid transparent}
+.agent-item.idle{opacity:.4}
+.agent-item.active{border-color:var(--color-border-info);background:var(--color-background-info)}
+.agent-item.done{border-color:var(--color-border-success);background:var(--color-background-success)}
+.agent-item.error{border-color:var(--color-border-danger);background:var(--color-background-danger)}
+.agent-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;background:var(--color-border-secondary)}
+.agent-item.active .agent-dot{background:#378ADD}
+.agent-item.done .agent-dot{background:#639922}
+.agent-item.error .agent-dot{background:#E24B4A}
+.agent-name{font-size:12px;font-weight:500;color:var(--color-text-primary)}
+.agent-role{font-size:10px;color:var(--color-text-secondary);margin-top:1px}
+.divider{height:0.5px;background:var(--color-border-tertiary);margin:10px 0}
+.info-block{font-size:10px;color:var(--color-text-secondary);line-height:1.7}
+.info-block b{color:var(--color-text-primary);font-weight:500}
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.topbar{padding:10px 14px;border-bottom:0.5px solid var(--color-border-tertiary);display:flex;align-items:center;justify-content:space-between}
+.topbar-title{font-size:13px;font-weight:500;color:var(--color-text-primary)}
+.topbar-right{display:flex;align-items:center;gap:8px}
+.modebtns{display:flex;gap:6px;align-items:center}
+.mbtn{font-size:10px;padding:4px 10px;border-radius:999px;border:0.5px solid var(--color-border-secondary);background:var(--color-background-secondary);color:var(--color-text-secondary);cursor:pointer;font-weight:600;letter-spacing:.02em}
+.mbtn:hover{background:var(--color-background-tertiary)}
+.mbtn.active{border-color:var(--color-border-info);background:var(--color-background-info);color:var(--color-text-info)}
+.spill{font-size:10px;padding:2px 8px;border-radius:10px}
+.spill.ready{background:var(--color-background-success);color:var(--color-text-success)}
+.spill.running{background:var(--color-background-warning);color:var(--color-text-warning)}
+.spill.error{background:var(--color-background-danger);color:var(--color-text-danger)}
+.chat{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;min-height:400px;max-height:460px}
+.msg{display:flex;gap:8px;align-items:flex-start}
+.msg.user{flex-direction:row-reverse}
+.av{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;flex-shrink:0}
+.av.bot{background:var(--color-background-info);color:var(--color-text-info);border:0.5px solid var(--color-border-info)}
+.av.user{background:var(--color-background-warning);color:var(--color-text-warning);border:0.5px solid var(--color-border-warning)}
+.bubble{padding:8px 12px;border-radius:10px;font-size:13px;line-height:1.55;color:var(--color-text-primary);max-width:86%}
+.msg.bot .bubble{background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:3px 10px 10px 10px}
+.msg.user .bubble{background:var(--color-background-info);color:var(--color-text-info);border:0.5px solid var(--color-border-info);border-radius:10px 3px 10px 10px}
+.trace{font-size:10px;margin-top:6px;border-top:0.5px solid var(--color-border-tertiary);padding-top:5px;line-height:1.8;color:var(--color-text-secondary)}
+.tracebox{margin-top:6px}
+.tracebox summary{cursor:pointer;user-select:none;font-size:10px;color:var(--color-text-secondary);font-weight:500;list-style:none}
+.tracebox summary::-webkit-details-marker{display:none}
+.tracebox summary:before{content:'▸';display:inline-block;margin-right:6px;opacity:.7}
+.tracebox[open] summary:before{content:'▾'}
+.tracebox .trace{margin-top:6px;border-top:0.5px solid var(--color-border-tertiary);padding-top:5px}
+.tr{display:flex;align-items:baseline;gap:5px;flex-wrap:wrap}
+.ttag{font-size:9px;font-weight:500;padding:1px 5px;border-radius:3px;white-space:nowrap}
+.tc{background:#FCEBEB;color:#A32D2D}
+.tr2{background:#EEEDFE;color:#534AB7}
+.tg{background:#E6F1FB;color:#185FA5}
+.tp{background:#E1F5EE;color:#0F6E56}
+.te{background:#FAECE7;color:#993C1D}
+.tf{background:#FAEEDA;color:#854F0B}
+.ts{background:#E7F6FA;color:#0C5A6B}
+.compare{margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:820px){.compare{grid-template-columns:1fr}}
+.cbox{border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);background:var(--color-background-primary);overflow:hidden}
+.chead{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:0.5px solid var(--color-border-tertiary)}
+.ctitle{font-size:12px;font-weight:600;color:var(--color-text-primary)}
+.cbadge{font-size:10px;padding:2px 8px;border-radius:999px;border:0.5px solid var(--color-border-secondary);color:var(--color-text-secondary);background:var(--color-background-secondary)}
+.cbadge.baseline{border-color:var(--color-border-warning);color:var(--color-text-warning);background:var(--color-background-warning)}
+.cbadge.proposed{border-color:var(--color-border-success);color:var(--color-text-success);background:var(--color-background-success)}
+.crows{padding:10px 12px;display:grid;gap:8px}
+.crow{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.clabel{font-size:11px;color:var(--color-text-secondary)}
+.cval{font-size:11px;font-weight:600;color:var(--color-text-primary);display:flex;align-items:center;gap:8px;white-space:nowrap}
+.dotx{width:7px;height:7px;border-radius:50%;display:inline-block;background:var(--color-border-secondary)}
+.dotx.bad{background:#E24B4A}
+.dotx.mid{background:#EF9F27}
+.dotx.good{background:#639922}
+.csub{font-size:10px;color:var(--color-text-secondary);font-weight:500}
+.typing{display:flex;gap:3px;align-items:center;padding:2px 0}
+.dot{width:5px;height:5px;border-radius:50%;background:var(--color-border-secondary)}
+@keyframes blink{0%,80%,100%{opacity:.2}40%{opacity:1}}
+.dot:nth-child(1){animation:blink 1.2s 0s infinite}
+.dot:nth-child(2){animation:blink 1.2s .2s infinite}
+.dot:nth-child(3){animation:blink 1.2s .4s infinite}
+.bottom{border-top:0.5px solid var(--color-border-tertiary);padding:10px 14px}
+.sugs{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px}
+.sug{font-size:11px;padding:3px 9px;border-radius:12px;border:0.5px solid var(--color-border-secondary);background:var(--color-background-secondary);color:var(--color-text-secondary);cursor:pointer}
+.sug:hover{background:var(--color-background-tertiary)}
+.apirow{display:flex;gap:6px;align-items:center;margin-bottom:7px}
+.apirow label{font-size:11px;color:var(--color-text-secondary);white-space:nowrap;font-weight:500}
+.apirow input,.apirow select{flex:1;padding:6px 10px;font-size:12px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-primary);outline:none;font-family:var(--font-mono)}
+.apirow input:focus{border-color:#378ADD;box-shadow:0 0 0 2px var(--color-background-info)}
+.apirow select:focus{border-color:#378ADD;box-shadow:0 0 0 2px var(--color-background-info)}
+.apirow select{appearance:none}
+.irow{display:flex;gap:7px}
+.irow input{flex:1;padding:8px 12px;font-size:13px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-primary);outline:none}
+.irow input:focus{border-color:#378ADD;box-shadow:0 0 0 2px var(--color-background-info)}
+.sbtn{padding:8px 16px;border-radius:var(--border-radius-md);border:0.5px solid #378ADD;background:var(--color-background-info);color:var(--color-text-info);font-size:13px;font-weight:500;cursor:pointer;transition:opacity .15s}
+.sbtn:hover{opacity:.85}
+.sbtn:disabled{opacity:.4;cursor:not-allowed}
+.footer{text-align:center;font-size:11px;color:var(--color-text-secondary);margin-top:12px}
+</style>
+</head>
+<body>
+
+<div style="width:100%;max-width:900px">
+  <div style="margin-bottom:12px;font-size:12px;color:#5f5e5a;text-align:center">
+    ECMA-LLM — Multi-Agent E-commerce Conversational Architecture &nbsp;|&nbsp; Multi-provider LLM &nbsp;|&nbsp; 6 Specialized Agents &nbsp;|&nbsp; A2A Protocol
+  </div>
+
+  <div class="wrap">
+    <div class="sidebar">
+      <div class="sidebar-title">Agent pipeline</div>
+      <div class="agent-item idle" id="ag-ctrl"><div class="agent-dot"></div><div><div class="agent-name">Controller</div><div class="agent-role">Intent + routing</div></div></div>
+      <div class="agent-item idle" id="ag-retr"><div class="agent-dot"></div><div><div class="agent-name">Knowledge retriever</div><div class="agent-role">DB + policy facts</div></div></div>
+      <div class="agent-item idle" id="ag-gen"><div class="agent-dot"></div><div><div class="agent-name">Content generator</div><div class="agent-role">Draft response</div></div></div>
+      <div class="agent-item idle" id="ag-pers"><div class="agent-dot"></div><div><div class="agent-name">Persona agent</div><div class="agent-role">Tone enforcement</div></div></div>
+      <div class="agent-item idle" id="ag-eval"><div class="agent-dot"></div><div><div class="agent-name">Constraint evaluator</div><div class="agent-role">Policy + accuracy</div></div></div>
+      <div class="agent-item idle" id="ag-ref"><div class="agent-dot"></div><div><div class="agent-name">Refiner</div><div class="agent-role">Polish + verify</div></div></div>
+      <div class="agent-item idle" id="ag-single" style="display:none"><div class="agent-dot"></div><div><div class="agent-name">Single agent</div><div class="agent-role">Prompt + tools (DB + RAG)</div></div></div>
+      <div class="divider"></div>
+      <div class="info-block">
+        <div><b>Model:</b> —</div>
+        <div><b>API:</b> —</div>
+        <div><b>Dataset:</b> The Look E-commerce</div>
+        <div><b>Protocol:</b> A2A sequential</div>
+        <div><b>Agents:</b> 6 specialized</div>
+      </div>
+      <div class="divider"></div>
+      <div class="info-block">
+        <div><b>Dataset includes:</b></div>
+        <div>Users · Products · Orders · Order items</div>
+        <div>Inventory · Distribution centers · Shop events</div>
+        <div style="margin-top:6px"><b>Research paper:</b></div>
+        <div>Multi-Agent LLMs for</div>
+        <div>Conversational Task-Solving</div>
+      </div>
+    </div>
+
+    <div class="main">
+      <div class="topbar">
+        <div class="topbar-title" id="topTitle">ECMA-LLM — Multi-agent e-commerce chatbot</div>
+        <div class="topbar-right">
+          <div class="modebtns">
+            <button class="mbtn active" id="modeMulti" onclick="setMode('multi')">Multi agent</button>
+            <button class="mbtn" id="modeSingle" onclick="setMode('single')">Single agent</button>
+          </div>
+          <div class="spill ready" id="spill">ready</div>
+        </div>
+      </div>
+
+      <div class="chat" id="chat">
+        <div class="msg bot">
+          <div class="av bot">AI</div>
+          <div class="bubble">
+            Assalam o Alaikum! I am ECMA-LLM, a 6-agent e-commerce support system. Choose your <b>chat</b> platform + model and enter that provider&apos;s API key. Policy search (RAG) always uses OpenAI <b>text-embedding-3-small</b> via the server <b>OPENAI_API_KEY</b> in <b>.env</b>.
+            <details class="tracebox">
+              <summary>Show agent trace</summary>
+              <div class="trace"><div class="tr"><span class="ttag tc">Controller</span>System initialized — all 6 agents on standby</div></div>
+            </details>
+          </div>
+        </div>
+      </div>
+
+      <div class="bottom">
+        <div class="apirow">
+          <label>Platform:</label>
+          <select id="platform"></select>
+        </div>
+        <div class="apirow">
+          <label>Chat model:</label>
+          <select id="chatmodel"></select>
+        </div>
+        <div class="apirow">
+          <label>API Key:</label>
+          <input type="password" id="apikey" placeholder="Chat provider key — stored for this tab session only" />
+        </div>
+        <div class="sugs">
+          <span class="sug" onclick="setQ('Where is my order 1?')">Order status</span>
+          <span class="sug" onclick="setQ('I was charged twice for my purchase')">Billing dispute</span>
+          <span class="sug" onclick="setQ('Can I return a product after 35 days?')">Return policy</span>
+          <span class="sug" onclick="setQ('Recommend swimwear under $50')">Product rec</span>
+          <span class="sug" onclick="setQ('My account is locked and I have a pending order 2')">Multi-step</span>
+        </div>
+        <div class="irow">
+          <input id="qinput" placeholder="Type your e-commerce query..." onkeydown="if(event.key==='Enter')handleSend()"/>
+          <button class="sbtn" id="sbtn" onclick="handleSend()">Send</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="compare">
+    <div class="cbox">
+      <div class="chead">
+        <div class="ctitle">Single LLM</div>
+        <div class="cbadge baseline">Baseline</div>
+      </div>
+      <div class="crows">
+        <div class="crow"><div class="clabel">Hallucination control</div><div class="cval"><span class="dotx bad"></span>Weak</div></div>
+        <div class="crow"><div class="clabel">Policy constraint checking</div><div class="cval"><span class="dotx bad"></span>None</div></div>
+        <div class="crow"><div class="clabel">Tone enforcement</div><div class="cval"><span class="dotx mid"></span>Partial</div></div>
+        <div class="crow"><div class="clabel">Multi-step reasoning</div><div class="cval"><span class="dotx bad"></span>Poor</div></div>
+        <div class="crow"><div class="clabel">Explainability / trace</div><div class="cval"><span class="dotx bad"></span>None</div></div>
+        <div class="crow">
+          <div class="clabel">Token efficiency</div>
+          <div class="cval"><span class="dotx mid"></span><span>~1200</span> <span class="csub">avg</span></div>
+        </div>
+        <div class="crow"><div class="clabel">Refinement loop</div><div class="cval"><span class="dotx bad"></span>Not present</div></div>
+      </div>
+    </div>
+
+    <div class="cbox">
+      <div class="chead">
+        <div class="ctitle">Multi-Agent A2A</div>
+        <div class="cbadge proposed">Proposed system</div>
+      </div>
+      <div class="crows">
+        <div class="crow"><div class="clabel">Hallucination control</div><div class="cval"><span class="dotx good"></span>RAG-grounded</div></div>
+        <div class="crow"><div class="clabel">Policy constraint checking</div><div class="cval"><span class="dotx good"></span>Evaluator agent</div></div>
+        <div class="crow"><div class="clabel">Tone enforcement</div><div class="cval"><span class="dotx good"></span>Persona agent</div></div>
+        <div class="crow"><div class="clabel">Multi-step reasoning</div><div class="cval"><span class="dotx good"></span>Sequential A2A</div></div>
+        <div class="crow"><div class="clabel">Explainability / trace</div><div class="cval"><span class="dotx good"></span>Full agent trace</div></div>
+        <div class="crow">
+          <div class="clabel">Token efficiency</div>
+          <div class="cval"><span class="dotx good"></span><span>~900</span> <span class="csub">avg (-25%)</span></div>
+        </div>
+        <div class="crow"><div class="clabel">Refinement loop</div><div class="cval"><span class="dotx good"></span>Closed-loop refiner</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Research Demo &nbsp;·&nbsp; ECMA-LLM Architecture &nbsp;·&nbsp; Gaps Covered: Deterministic Control · Persona Separation · Constraint Evaluation · Closed-loop Refinement
+  </div>
+</div>
+
+<script>
+var busy=false;
+var sessionId=null;
+
+var PLATFORM_MODELS={
+  openai:{
+    label:'OpenAI',
+    chat:[
+      'gpt-5.4',
+      'gpt-5.4-mini',
+      'gpt-5.4-nano',
+      'gpt-4.1',
+      'gpt-4.1-mini',
+      'gpt-4.1-nano',
+      'gpt-4o',
+      'gpt-4o-mini',
+      'o3',
+      'o3-mini'
+    ]
+  },
+  gemini:{
+    label:'Google Gemini',
+    chat:[
+      'gemini-3.1-pro',
+      'gemini-3.1-flash',
+      'gemini-3.1-flash-lite',
+      'gemini-3-deep-think',
+      'gemini-1.5-pro'
+    ]
+  },
+  anthropic:{
+    label:'Anthropic Claude',
+    chat:[
+      'claude-4.7-opus',
+      'claude-4.6-sonnet',
+      'claude-4.5-haiku',
+      'claude-3.5-sonnet'
+    ]
+  }
+};
+
+function el(id){return document.getElementById(id);}
+function opt(v,t){var o=document.createElement('option');o.value=v;o.textContent=t||v;return o;}
+
+var DEFAULT_CHAT_HTML=null;
+function chatKey(mode){return 'ecma-llm-chat-'+(mode==='single'?'single':'multi');}
+function getMode(){return (loadSession().mode||'multi')==='single'?'single':'multi';}
+function saveChatSnapshot(){
+  try{
+    var chat=el('chat');
+    if(!chat)return;
+    sessionStorage.setItem(chatKey(getMode()), chat.innerHTML);
+  }catch(e){}
+}
+function restoreChatSnapshot(mode){
+  try{
+    var chat=el('chat');
+    if(!chat)return;
+    var raw=sessionStorage.getItem(chatKey(mode));
+    chat.innerHTML = raw || DEFAULT_CHAT_HTML || chat.innerHTML;
+    chat.scrollTop=chat.scrollHeight;
+  }catch(e){}
+}
+
+function loadSession(){
+  try{
+    var raw=sessionStorage.getItem('ecma-llm-settings');
+    return raw?JSON.parse(raw):{};
+  }catch(e){return {};}
+}
+function saveSession(s){
+  try{sessionStorage.setItem('ecma-llm-settings',JSON.stringify(s||{}));}catch(e){}
+}
+function persistSettings(){
+  var saved=loadSession();
+  saveSession({
+    platform: el('platform').value,
+    chatModel: el('chatmodel').value,
+    apiKey: el('apikey').value,
+    mode: saved.mode || 'multi'
+  });
+}
+
+function setMode(mode){
+  // keep separate chat history per mode
+  saveChatSnapshot();
+
+  var m=(mode==='single')?'single':'multi';
+  var saved=loadSession();
+  saved.mode=m;
+  saveSession(saved);
+
+  var bMulti=el('modeMulti');
+  var bSingle=el('modeSingle');
+  if(bMulti && bSingle){
+    bMulti.className='mbtn'+(m==='multi'?' active':'');
+    bSingle.className='mbtn'+(m==='single'?' active':'');
+  }
+  var title=el('topTitle');
+  if(title){
+    title.textContent = m==='single'
+      ? 'ECMA-LLM — Single-agent baseline (tools + RAG)'
+      : 'ECMA-LLM — Multi-agent e-commerce chatbot';
+  }
+
+  // Toggle sidebar agent list
+  var multiIds=['ag-ctrl','ag-retr','ag-gen','ag-pers','ag-eval','ag-ref'];
+  for(var i=0;i<multiIds.length;i++){
+    var x=document.getElementById(multiIds[i]);
+    if(x)x.style.display=(m==='single')?'none':'flex';
+  }
+  var s=document.getElementById('ag-single');
+  if(s)s.style.display=(m==='single')?'flex':'none';
+
+  restoreChatSnapshot(m);
+  resetAgents();
+}
+
+function fillSelect(sel,values){
+  sel.innerHTML='';
+  for(var i=0;i<values.length;i++)sel.appendChild(opt(values[i]));
+}
+
+function updateSidebarProviderInfo(){
+  var platform=el('platform').value;
+  var cfg=PLATFORM_MODELS[platform]||PLATFORM_MODELS.openai;
+
+  var infoBlocks=document.querySelectorAll('.sidebar .info-block');
+  if(infoBlocks&&infoBlocks.length){
+    var first=infoBlocks[0];
+    var divs=first.querySelectorAll('div');
+    if(divs.length>=2){
+      divs[0].innerHTML='<b>Model:</b> '+escapeHtml(el('chatmodel').value);
+      divs[1].innerHTML='<b>API:</b> '+escapeHtml(cfg.label);
+    }
+  }
+}
+
+function refreshModels(){
+  var platform=el('platform').value;
+  var cfg=PLATFORM_MODELS[platform]||PLATFORM_MODELS.openai;
+  fillSelect(el('chatmodel'),cfg.chat);
+  updateSidebarProviderInfo();
+}
+
+function initProviderUI(){
+  var p=el('platform');
+  p.innerHTML='';
+  Object.keys(PLATFORM_MODELS).forEach(function(k){
+    p.appendChild(opt(k,PLATFORM_MODELS[k].label));
+  });
+
+  // capture initial chat template once
+  if(DEFAULT_CHAT_HTML===null){
+    var chat=el('chat');
+    DEFAULT_CHAT_HTML = chat ? chat.innerHTML : '';
+  }
+
+  var saved=loadSession();
+  setMode(saved.mode || 'multi');
+  if(saved.platform && PLATFORM_MODELS[saved.platform]) p.value=saved.platform;
+  refreshModels();
+  if(saved.chatModel) el('chatmodel').value=saved.chatModel;
+  if(saved.apiKey) el('apikey').value=saved.apiKey;
+  updateSidebarProviderInfo();
+
+  p.onchange=function(){refreshModels();persistSettings();};
+  el('chatmodel').onchange=function(){updateSidebarProviderInfo();persistSettings();};
+  el('apikey').oninput=persistSettings;
+}
+
+var AGENT_ID={
+  Controller:'ag-ctrl',
+  Retriever:'ag-retr',
+  Generator:'ag-gen',
+  Persona:'ag-pers',
+  Evaluator:'ag-eval',
+  Refiner:'ag-ref',
+  SingleAgent:'ag-single'
+};
+
+function setAgent(id,state){var el=document.getElementById(id);if(el)el.className='agent-item '+state;}
+function resetAgents(){['ag-ctrl','ag-retr','ag-gen','ag-pers','ag-eval','ag-ref','ag-single'].forEach(function(a){setAgent(a,'idle');});}
+function setQ(v){document.getElementById('qinput').value=v;}
+
+function addMsg(role,html){
+  var chat=document.getElementById('chat');
+  var d=document.createElement('div');d.className='msg '+role;
+  var av=document.createElement('div');av.className='av '+(role==='user'?'user':'bot');av.textContent=role==='user'?'You':'AI';
+  var b=document.createElement('div');b.className='bubble';b.innerHTML=html;
+  d.appendChild(av);d.appendChild(b);
+  chat.appendChild(d);chat.scrollTop=chat.scrollHeight;
+}
+
+function showTyping(){
+  var chat=document.getElementById('chat');
+  var d=document.createElement('div');d.className='msg bot';d.id='typ';
+  var av=document.createElement('div');av.className='av bot';av.textContent='AI';
+  var b=document.createElement('div');b.className='bubble';
+  b.innerHTML='<div class="typing"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>';
+  d.appendChild(av);d.appendChild(b);
+  chat.appendChild(d);chat.scrollTop=chat.scrollHeight;
+}
+
+function removeTyping(){var t=document.getElementById('typ');if(t)t.remove();}
+
+function setPill(state){
+  var p=document.getElementById('spill');
+  p.className='spill '+state;
+  p.textContent=state;
+}
+
+function escapeHtml(s){return String(s||'').replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+
+async function streamPipeline(query,apiKey){
+  setPill('running');
+  var traceEntries=[];
+
+  var res;
+  try{
+    res=await fetch('/api/chat/stream',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        query:query,
+        platform:el('platform').value,
+        model:el('chatmodel').value,
+        apiKey:apiKey,
+        mode:(loadSession().mode||'multi'),
+        sessionId:sessionId||undefined
+      })
+    });
+  }catch(err){
+    throw new Error('Cannot reach server: '+err.message);
+  }
+  if(!res.ok){
+    var txt=await res.text();
+    throw new Error('Server error '+res.status+': '+txt);
+  }
+
+  var reader=res.body.getReader();
+  var decoder=new TextDecoder();
+  var buf='';
+  var finalResponse='';
+  var meta=null;
+  showTyping();
+
+  while(true){
+    var chunk=await reader.read();
+    if(chunk.done)break;
+    buf+=decoder.decode(chunk.value,{stream:true});
+    var parts=buf.split(/\n\n/);
+    buf=parts.pop();
+    for(var i=0;i<parts.length;i++){
+      var block=parts[i].trim();
+      if(block.indexOf('data:')!==0)continue;
+      var json=block.replace(/^data:\s*/,'');
+      if(!json)continue;
+      var evt;
+      try{evt=JSON.parse(json);}catch(e){continue;}
+      if(evt.type==='agent_start'){
+        var id=AGENT_ID[evt.agent];
+        if(id)setAgent(id,'active');
+      }else if(evt.type==='agent_done'){
+        var id2=AGENT_ID[evt.agent];
+        if(id2)setAgent(id2,'done');
+        if(evt.trace)traceEntries.push(evt.trace);
+      }else if(evt.type==='agent_error'){
+        throw new Error(evt.error||'Agent error');
+      }else if(evt.type==='final'){
+        finalResponse=evt.finalResponse||'';
+        meta=evt.meta||null;
+      }
+    }
+  }
+
+  removeTyping();
+  var traceHtml='<details class="tracebox"><summary>Show agent trace</summary><div class="trace">';
+  for(var j=0;j<traceEntries.length;j++){
+    var t=traceEntries[j];
+    traceHtml+='<div class="tr"><span class="ttag '+t.cls+'">'+escapeHtml(t.agent)+'</span><span>'+escapeHtml(t.note)+'</span></div>';
+  }
+  if(meta){
+    var modeTxt = meta.mode ? ('mode='+escapeHtml(meta.mode)) : '';
+    var pipeTxt = meta.pipeline ? ('pipeline='+escapeHtml(meta.pipeline)) : '';
+    var srcTxt = meta.dataSource ? ('source='+escapeHtml(meta.dataSource)) : '';
+    var scoreTxt = (meta.evalScore!==undefined && meta.evalScore!==null && meta.mode!=='single') ? ('score='+meta.evalScore+'%') : '';
+    var refTxt = (meta.refinementCount!==undefined && meta.refinementCount!==null && meta.mode!=='single') ? ('refinements='+meta.refinementCount) : '';
+    var partsMeta = ['intent='+escapeHtml(meta.intent), modeTxt, pipeTxt, srcTxt, scoreTxt, refTxt, (meta.latencyMs+'ms')].filter(function(x){return x&&x.length;});
+    traceHtml+='<div class="tr" style="margin-top:4px;opacity:.85"><span class="ttag" style="background:#eee;color:#555">meta</span><span>'+partsMeta.join(' · ')+'</span></div>';
+  }
+  traceHtml+='</div></details>';
+  addMsg('bot',escapeHtml(finalResponse||'[empty response]').replace(/\n/g,'<br>')+traceHtml);
+  setPill('ready');
+}
+
+async function runPipeline(query,apiKey){
+  try{
+    await streamPipeline(query,apiKey);
+  }catch(err){
+    removeTyping();
+    ['ag-ctrl','ag-retr','ag-gen','ag-pers','ag-eval','ag-ref'].forEach(function(a){
+      var el=document.getElementById(a);
+      if(el&&el.className.indexOf('active')>-1)setAgent(a,'error');
+    });
+    var msg=err.message||'Unknown error';
+    if(msg.indexOf('401')>-1||msg.toLowerCase().indexOf('invalid')>-1||msg.toLowerCase().indexOf('incorrect')>-1){
+      msg='Invalid chat API key for the selected provider.';
+    }else if(msg.indexOf('429')>-1){
+      msg='Rate limit exceeded. Please wait a moment and try again.';
+    }else if(msg.toLowerCase().indexOf('quota')>-1){
+      msg='OpenAI quota exceeded. Please check billing at platform.openai.com.';
+    }
+    addMsg('bot','<span style="color:#a32d2d;font-size:12px;font-weight:500">Error: '+escapeHtml(msg)+'</span>');
+    setPill('error');
+  }
+  busy=false;
+  document.getElementById('sbtn').disabled=false;
+  setTimeout(resetAgents,4000);
+}
+
+function handleSend(){
+  if(busy)return;
+  var q=document.getElementById('qinput').value.trim();
+  var key=document.getElementById('apikey').value.trim();
+  if(!q)return;
+  if(!key){
+    addMsg('bot','<span style="color:#a32d2d;font-size:12px;font-weight:500">Error: Chat API key is required for the selected platform.</span>');
+    return;
+  }
+  busy=true;
+  document.getElementById('sbtn').disabled=true;
+  document.getElementById('qinput').value='';
+  addMsg('user',escapeHtml(q));
+  resetAgents();
+  runPipeline(q,key);
+}
+
+initProviderUI();
+</script>
+</body>
+</html>

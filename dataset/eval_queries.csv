@@ -1,0 +1,101 @@
+id,category,mode_hint,query,notes
+1,order_status,multi,Where is my order 1?,Order status lookup (numeric id)
+2,order_status,multi,Please check order 2 status and ETA,Status + ETA fields
+3,order_status,multi,Track order 3 and tell me delivery estimate,Shipping/delivery times if present
+4,order_status,multi,I need an update for order 10,Simple status lookup
+5,order_status,multi,What is the status of ORD-11?,Order id parsing (ORD- prefix)
+6,order_status,multi,Is order 25 delivered yet?,DeliveredAt check if available
+7,order_status,multi,My order 30 was shipped?,ShippedAt check
+8,order_status,multi,Order 42: where is it now?,General tracking facts
+9,order_status,multi,Can you tell me the latest update on order 50?,Status summary
+10,order_status,multi,What's going on with order 60? I haven't received it,Missing delivery handling
+11,order_status,multi,Show me my recent orders,No order id → list recent orders
+12,order_status,multi,List last 3 orders for my account,Recent orders list
+13,order_status,multi,I forgot my order number—can you list my latest orders?,Missing entity recovery
+14,order_status,multi,I placed an order recently. What’s the status?,No id scenario
+15,order_status,multi,Any update on my last order?,No id scenario
+16,billing_dispute,multi,I was charged twice for my purchase,Billing duplicate dispute
+17,billing_dispute,multi,I think there is a duplicate charge on my card,DuplicateDetected handling
+18,billing_dispute,multi,Why was I charged $120 twice?,Amount mention + dispute
+19,billing_dispute,multi,Check billing for order 1,Billing for order id
+20,billing_dispute,multi,Please verify payment for order 2,Order-specific billing
+21,billing_dispute,multi,I need the last charge amount and date on my account,Latest billing record
+22,billing_dispute,multi,Has my refund been issued yet?,Refund status field
+23,billing_dispute,multi,When will my refund arrive?,Refund ETA field
+24,billing_dispute,multi,I see two identical charges—can you help?,Dispute workflow language
+25,billing_dispute,multi,My refund reference number please,Refund ref field
+26,billing_dispute,multi,I cancelled but still got charged. What happened?,Edge case messaging
+27,billing_dispute,multi,There is an extra charge on my statement from you,Billing investigation
+28,billing_dispute,multi,Can you check my billing history?,If only latest exists, explain
+29,billing_dispute,multi,I need invoice details for my last order,Billing info summary
+30,billing_dispute,multi,Why is my refund taking so long?,ETA vs policy
+31,product_recommendation,multi,Recommend swimwear under $50,Catalog search + price filter
+32,product_recommendation,multi,Suggest women's tops under $60,Department/category query
+33,product_recommendation,multi,Find me men's jeans under $80,Keyword + price
+34,product_recommendation,multi,Recommend something from Adidas under $100,Brand filter via keyword
+35,product_recommendation,multi,Show me Nike shoes under $120,Keyword + price
+36,product_recommendation,multi,I want a dress under $70,Keyword + price
+37,product_recommendation,multi,Any jackets under $90?,Keyword + price
+38,product_recommendation,multi,Suggest products in Women department under $40,Department filter
+39,product_recommendation,multi,Recommend a gift under $30,No category; should return top-rated cheap items
+40,product_recommendation,multi,Show me best-rated items under $25,Rating + price ordering
+41,product_recommendation,multi,Any accessories under $20?,Keyword
+42,product_recommendation,multi,Recommend kids clothing under $35,Keyword
+43,product_recommendation,multi,Show me tops & tees under $45,Category-like phrase
+44,product_recommendation,multi,Recommend something comfortable for summer under $55,Keyword extraction robustness
+45,product_recommendation,multi,Find me a hoodie under $65,Keyword
+46,product_recommendation,multi,Recommend clothing under $15,Low budget results
+47,product_recommendation,multi,Suggest a bag under $50,Keyword
+48,product_recommendation,multi,Recommend a skirt under $45,Keyword
+49,product_recommendation,multi,Show me any product under $10,General cheap items
+50,product_recommendation,multi,Recommend something for men under $30,Keyword + department hint
+51,return_policy,multi,Can I return a product after 35 days?,Policy retrieval (return window)
+52,return_policy,multi,What is your return policy?,Policy retrieval
+53,refund_policy,multi,How long do refunds take?,Policy retrieval (refund ETA)
+54,refund_policy,multi,When will I get my refund after returning an item?,Refund policy
+55,warranty,multi,Do you offer warranty on products?,Warranty policy
+56,warranty,multi,Is there a warranty for electronics?,Warranty + category mention
+57,shipping,multi,How long does shipping take?,Shipping policy
+58,shipping,multi,Do you ship internationally?,Shipping policy
+59,shipping,multi,What are delivery timelines?,Shipping policy
+60,account_issue,multi,My account is locked. How can I unlock it?,Account policy/doc
+61,account_issue,multi,I can’t log in to my account,Account policy
+62,account_issue,multi,I forgot my password. What should I do?,Account recovery policy
+63,account_issue,multi,How do I update my email address?,Account policy
+64,multi_step,multi,My account is locked and I have a pending order 2,Needs policy + order facts
+65,multi_step,multi,I was charged twice and I also want to return the item,Policy + billing combined
+66,multi_step,multi,Where is my order 1 and what is the return window?,Order + policy
+67,multi_step,multi,Order 3 status and refund timeline if returned,Order + refund policy
+68,multi_step,multi,Recommend a product under $40 and tell me return policy,Product + policy
+69,multi_step,multi,I need tracking for order 10 and also help resetting my account password,Order + account
+70,multi_step,multi,Check billing for order 1 and tell me shipping policy,DB + policy
+71,multi_step,multi,Show my recent orders and explain refund processing time,DB list + policy
+72,multi_step,multi,Recommend shoes under $90 and explain warranty coverage,Product + warranty
+73,multi_step,multi,I received the wrong item: what now and what’s my order status for 2?,Mixed
+74,multi_step,multi,My delivery is late. Can I cancel and get a refund?,Shipping + refund policy
+75,general,single,Hi,General greeting baseline
+76,general,single,What can you help me with?,Capabilities response
+77,order_status,single,Order 999999 status?,Non-existent order handling
+78,billing_dispute,single,Check billing for order 999999,Missing billing record
+79,product_recommendation,single,Recommend something under $5,No results scenario handling
+80,return_policy,single,What is the return window?,Return policy short answer
+81,refund_policy,single,Is my refund instant?,Policy constraint response
+82,shipping,single,Do you provide express shipping?,Policy excerpt usage
+83,warranty,single,What is covered by warranty?,Policy summary
+84,account_issue,single,How do I delete my account?,Account policy (if not present, handle missing)
+85,product_recommendation,single,Recommend a hoodie under $65 and keep it short,Format/tone test
+86,product_recommendation,single,Show 3 items under $30,Limit compliance
+87,product_recommendation,single,Recommend women's dresses under $90,Keyword extraction
+88,product_recommendation,single,Recommend men's shoes under $120,Keyword extraction
+89,product_recommendation,single,Suggest accessories under $25,Keyword extraction
+90,order_status,single,Where is my order ORD-11?,Order parsing
+91,order_status,single,List my last 3 orders,Recent list
+92,multi_step,single,Where is my order 1 and can I return it after 35 days?,Mixed facts+policy
+93,multi_step,single,I was charged twice. What is my refund ETA?,Billing + policy
+94,multi_step,single,Recommend swimwear under $50 and tell me shipping time,Product + shipping
+95,multi_step,single,My account is locked and I can’t track order 2,Account + order
+96,multi_step,single,Check billing for order 1 and recommend a product under $40,DB + catalog
+97,multi_step,single,Explain return policy and refund timeline in one answer,Two policy intents
+98,general,single,Thanks,General closing
+99,general,single,Can you summarize your last answer?,Conversation behavior
+100,general,single,You made a mistake earlier—please correct it,Self-correction behavior

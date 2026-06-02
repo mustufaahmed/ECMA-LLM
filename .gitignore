@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.env
+.env.local
+logs/
+*.log
+.DS_Store
+dataset/thelook_ecommerce.distribution_centers.csv
+dataset/thelook_ecommerce.events.csv
+dataset/thelook_ecommerce.inventory_items.csv
+dataset/thelook_ecommerce.order_items.csv
+dataset/thelook_ecommerce.products.csv
+dataset/thelook_ecommerce.users.csv"dataset/*.csv" 
+research_paper
